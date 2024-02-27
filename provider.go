@@ -8,7 +8,7 @@ import (
 	awsbase "github.com/hashicorp/aws-sdk-go-base"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/joshuamorris3/terraform-provider-credstash/credstash"
+	"github.com/MasteryConnect/terraform-provider-credstash/credstash"
 )
 
 var _ terraform.ResourceProvider = provider()
