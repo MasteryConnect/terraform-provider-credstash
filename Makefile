@@ -12,4 +12,5 @@ install: build
 
 release:
 	GOOS=darwin go build -v -o terraform-provider-credstash_darwin_amd64
+	GOOS=darwin go build -v -o terraform-provider-credstash_darwin_arm64
 	GOOS=linux go build -v -o terraform-provider-credstash_linux_amd64
