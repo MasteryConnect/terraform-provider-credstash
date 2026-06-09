@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"log"
 
@@ -37,6 +38,11 @@ func dataSourceSecret() *schema.Resource {
 				Optional:    true,
 				Description: "encryption context for the secret",
 			},
+			"default": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "value to use when the secret does not exist",
+			},
 			"value": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -62,7 +68,12 @@ func dataSourceSecretRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Getting secret for name=%q table=%q version=%q context=%+v", name, table, version, context)
 	value, err := client.GetSecret(name, table, version, context)
 	if err != nil {
-		return err
+		defaultValue, hasDefault := d.GetOk("default")
+		if !hasDefault || !errors.Is(err, credstash.ErrSecretNotFound) {
+			return err
+		}
+		log.Printf("[DEBUG] Secret name=%q not found, using default value", name)
+		value = defaultValue.(string)
 	}
 
 	d.Set("value", value)

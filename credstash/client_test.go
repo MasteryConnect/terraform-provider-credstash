@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -45,6 +46,28 @@ func TestClient_GetSecret(t *testing.T) {
 	}
 }
 
+func TestClient_GetSecretNotFound(t *testing.T) {
+	c := &Client{
+		decrypter: fakeDecrypter{},
+		dynamoDB:  fakeDynamoDB{item: nil},
+		table:     "test_table",
+	}
+
+	t.Run("latest version", func(t *testing.T) {
+		_, err := c.GetSecret("missing_key", "", "", nil)
+		if !errors.Is(err, ErrSecretNotFound) {
+			t.Errorf("expected ErrSecretNotFound, got: %v", err)
+		}
+	})
+
+	t.Run("specific version", func(t *testing.T) {
+		_, err := c.GetSecret("missing_key", "", "0000000000000000001", nil)
+		if !errors.Is(err, ErrSecretNotFound) {
+			t.Errorf("expected ErrSecretNotFound, got: %v", err)
+		}
+	})
+}
+
 type fakeDynamoDB struct {
 	testQueryInput   func(*dynamodb.QueryInput)
 	testGetItemInput func(*dynamodb.GetItemInput)
@@ -64,6 +87,10 @@ func (db fakeDynamoDB) GetItem(in *dynamodb.GetItemInput) (*dynamodb.GetItemOutp
 func (db fakeDynamoDB) Query(in *dynamodb.QueryInput) (*dynamodb.QueryOutput, error) {
 	if db.testQueryInput != nil {
 		db.testQueryInput(in)
+	}
+
+	if db.item == nil {
+		return &dynamodb.QueryOutput{Count: aws.Int64(0)}, nil
 	}
 
 	return &dynamodb.QueryOutput{
