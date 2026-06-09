@@ -10,6 +10,7 @@ import (
 	"crypto/sha512"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"hash"
 
@@ -17,6 +18,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/kms"
 )
+
+// ErrSecretNotFound is returned when a secret does not exist in the credstash
+// table. Callers can detect it with errors.Is to fall back to a default value.
+var ErrSecretNotFound = errors.New("secret could not be found")
 
 func decryptData(material keyMaterial, key []byte) (string, error) {
 	block, err := aes.NewCipher(key)
@@ -118,6 +123,10 @@ func getSpecificVersion(svc dynamoDB, name, version, table string) (keyMaterial,
 		return keyMaterial{}, err
 	}
 
+	if len(item.Item) == 0 {
+		return keyMaterial{}, fmt.Errorf("secret with name %s version %s: %w", name, version, ErrSecretNotFound)
+	}
+
 	return keyMaterialFromDBItem(item.Item)
 }
 
@@ -142,7 +151,7 @@ func getLatestVersion(svc dynamoDB, name, table string) (keyMaterial, error) {
 	}
 
 	if aws.Int64Value(out.Count) == 0 {
-		return keyMaterial{}, fmt.Errorf("secret with name %s could not be found", name)
+		return keyMaterial{}, fmt.Errorf("secret with name %s: %w", name, ErrSecretNotFound)
 	}
 
 	return keyMaterialFromDBItem(out.Items[0])

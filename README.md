@@ -57,6 +57,16 @@ data "credstash_secret" "my_secret" {
 }
 ```
 
+You can supply a default value that is used when the secret does not exist.
+Without a `default`, a missing secret is an error:
+
+```hcl
+data "credstash_secret" "learnosity_data_url" {
+    name    = "production.app.learnosity.data_url"
+    default = "https://data.learnosity.com"
+}
+```
+
 ## AWS credentials
 
 AWS credentials are not directly set. Use one of the methods discussed
